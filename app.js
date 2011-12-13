@@ -34,23 +34,81 @@ app.get('/', function(req, res, next) {
   res.render('index', { title: 'Socket.IO Graph Test' });
 });
 
-var sockets = {};
-
 app.post('/datapoint', function(req, res, next) {
-  for (var sockid in sockets) {
-    console.log('SOCKET ' + sockid);
-    sockets[sockid].emit('datapoint', { value: req.body.value });
+  var series = req.body.series;
+  var value = req.body.value;
+  if (series && value) {
+    sendDataPoint(series, value);
+    return res.send(200, { result: 'OK' });
+  } else {
+    return res.sendError(new Error({ message: 'must supply series && value' }));
   }
-  res.send(200, { result: 'OK' });
 });
+
+var allSeries = {};
+function lookupSeries(name) {
+  if (allSeries.hasOwnProperty(name))
+    return allSeries[name];
+  else
+    return null;
+}
+
+function subscribe(socket, series) {
+  var s = lookupSeries(series);
+  if (s) {
+    console.log('SUBSCRIBE ' + socket.id + ' TO ' + s.name);
+    s.subscribers[socket.id] = socket;
+    return (true);
+  } else {
+    return (false);
+  }
+}
+function unsubscribeAll(socket) {
+  for (var series in allSeries) {
+    var s = allSeries[series];
+    if (s.subscribers.hasOwnProperty(socket.id)) {
+      console.log('UNSUBSCRIBE ' + socket.id + ' FROM ' + series.name);
+      delete s.subscribers[socket.id];
+    }
+  }
+}
+function sendDataPoint(series, value) {
+  var s = lookupSeries(series);
+  if (!s) {
+    s = allSeries[series] = { name: series, subscribers: {} };
+  }
+  for (var sockid in s.subscribers) {
+    var sock = s.subscribers[sockid];
+    sock.emit('datapoint', {
+      series: series,
+      value: value
+    });
+  }
+}
 
 io.sockets.on('connection', function(socket) {
   console.log('CONNECT: ' + socket.id);
-  sockets[socket.id] = socket;
+
   socket.emit('hello', { status: 'Connected @ ' + (new Date()) });
+
   socket.on('disconnect', function () {
-    console.log('DELETE SOCKET ' + socket.id);
-    delete sockets[socket.id];
+    console.log('DISCONNECT SOCKET ' + socket.id);
+    unsubscribeAll(socket);
+  });
+
+  socket.on('subscribe.series', function(inp) {
+    if (!inp.series)
+      return;
+    if (subscribe(socket, inp.series)) {
+      socket.emit('subscribe.series.ok', {
+        series: inp.series
+      });
+    } else {
+      socket.emit('subscribe.series.error', {
+        series: inp.series,
+        message: 'could not subscribe series "' + inp.series + '"'
+      });
+    }
   });
 });
 
