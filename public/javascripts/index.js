@@ -82,7 +82,7 @@ function updateStatus(str) {
 var reconTimes = 0;
 $(function() {
   initGraph();
-  socket = io.connect('http://localhost:3000');
+  socket = io.connect();
   socket.on('hello', function(inp) {
     updateStatus(inp.status);
     reconTimes = 0;
