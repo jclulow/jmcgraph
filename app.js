@@ -67,7 +67,7 @@ function unsubscribeAll(socket) {
   for (var series in allSeries) {
     var s = allSeries[series];
     if (s.subscribers.hasOwnProperty(socket.id)) {
-      console.log('UNSUBSCRIBE ' + socket.id + ' FROM ' + series.name);
+      console.log('UNSUBSCRIBE ' + socket.id + ' FROM ' + s.name);
       delete s.subscribers[socket.id];
     }
   }
