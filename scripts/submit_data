@@ -1,0 +1,19 @@
+#!/bin/ksh
+
+[[ -z "$1" || -z "$2" ]] && {
+  echo "Usage: $(basename $0) <series name> <value>" >&2
+  exit 1
+}
+
+JSON="{
+  \"series\": \"$1\",
+  \"value\": $2
+}"
+curl \
+  -H 'Accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -X POST \
+  -d "$JSON" \
+  'http://localhost:3000/datapoint'
+echo
+
