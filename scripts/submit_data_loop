@@ -1,0 +1,19 @@
+#!/bin/ksh
+
+DIR=$(dirname $(whence $0))
+
+SERIES=$1
+[[ -z "$SERIES" ]] && {
+  echo "Usage: $(basename $0) <series_name>" 2>&1
+  exit 1
+}
+
+((D = $RANDOM * 100 / 32768))
+while :
+do
+  echo "$SERIES" "$D"
+  "$DIR/submit_data" "$SERIES" "$D"
+  ((D = D + $RANDOM * 50 / 32768 - 25))
+  if [[ $D -lt 0 ]]; then D=50; fi
+  sleep 1
+done
